@@ -1,5 +1,6 @@
 from openai import OpenAI
 import pdb
+import httpx
 from langchain_openai import ChatOpenAI
 from langchain_core.globals import get_llm_cache
 from langchain_core.language_models.base import (
@@ -45,9 +46,13 @@ class DeepSeekR1ChatOpenAI(ChatOpenAI):
 
     def __init__(self, *args: Any, **kwargs: Any) -> None:
         super().__init__(*args, **kwargs)
+        # Create httpx client with SSL verification disabled
+        http_client = httpx.Client(verify=False)
+        
         self.client = OpenAI(
             base_url=kwargs.get("base_url"),
-            api_key=kwargs.get("api_key")
+            api_key=kwargs.get("api_key"),
+            http_client=http_client
         )
 
     async def ainvoke(

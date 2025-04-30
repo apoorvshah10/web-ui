@@ -1,12 +1,21 @@
 import base64
 import os
 import time
+import logging
 from pathlib import Path
 from typing import Dict, Optional
 import requests
 import json
 import gradio as gr
 import uuid
+import httpx
+
+# Configure logging
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(levelname)s - %(message)s'
+)
+logger = logging.getLogger(__name__)
 
 from langchain_anthropic import ChatAnthropic
 from langchain_mistralai import ChatMistralAI
@@ -43,6 +52,10 @@ def get_llm_model(provider: str, **kwargs):
         if not api_key:
             raise MissingAPIKeyError(provider, env_var)
         kwargs["api_key"] = api_key
+
+    # Log which provider and model is being used
+    model_name = kwargs.get("model_name")
+    logger.info(f"Using API Provider: {PROVIDER_DISPLAY_NAMES[provider]} with model: {model_name}")
 
     if provider == "anthropic":
         if not kwargs.get("base_url", ""):
@@ -181,11 +194,15 @@ def get_llm_model(provider: str, **kwargs):
             api_key=os.getenv("MOONSHOT_API_KEY"),
         )
     elif provider == "unbound":
+        # Create httpx client with SSL verification disabled for Unbound AI
+        http_client = httpx.Client(verify=False)
+        
         return ChatOpenAI(
             model=kwargs.get("model_name", "gpt-4o-mini"),
             temperature=kwargs.get("temperature", 0.0),
             base_url=os.getenv("UNBOUND_ENDPOINT", "https://api.getunbound.ai"),
             api_key=api_key,
+            http_client=http_client,
         )
     elif provider == "siliconflow":
         if not kwargs.get("api_key", ""):
